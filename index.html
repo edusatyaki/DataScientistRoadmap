@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Career Navigator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfbf7; /* Warm neutral background */
+            color: #1f2937;
+        }
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 500px;
+        }
+        /* Custom Scrollbar for inner content */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-active {
+            border-bottom: 2px solid #ea580c; /* Terracotta accent */
+            color: #ea580c;
+            font-weight: 600;
+        }
+    </style>
+    <!-- Chosen Palette: Warm Neutrals & Earth Tones (Cream #fdfbf7, Slate #1f2937, Terracotta #ea580c, Sage #84a98c) -->
+    <!-- Application Structure Plan: A Dashboard layout with a top navigation bar. 
+         1. 'Career Path': Interactive flowchart for role progression.
+         2. 'Learning Roadmap': Horizontal timeline for the 6-month plan.
+         3. 'Tech Stack Comparison': Interactive Radar chart to compare skills across roles.
+         4. 'Projects & Syllabus': Filterable lists for practical application.
+         Rationale: This structure breaks the linear document into task-oriented views (Planning vs. Learning vs. Building). -->
+    <!-- Visualization & Content Choices:
+         1. Career Path: HTML/CSS Flexbox Flowchart -> Goal: Show progression -> Interaction: Click phase to see details.
+         2. Tech Stack: Chart.js Radar Chart -> Goal: Compare role requirements (derived from text) -> Interaction: Toggle datasets.
+         3. Learning Plan: Interactive Timeline -> Goal: Step-by-step guidance -> Interaction: Click month to expand topics.
+         4. Project Gallery: CSS Grid with JS Filtering -> Goal: Browse portfolio ideas -> Interaction: Filter by Level.
+         Justification: Radar charts are excellent for comparing multi-dimensional skill sets. Timeline is intuitive for chronological learning. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-stone-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-stone-800">Data Career<span class="text-orange-600">Navigator</span></span>
+                </div>
+                <!-- Mobile Menu Button (Simple implementation) -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="text-stone-600 hover:text-stone-900 focus:outline-none">
+                        ☰
+                    </button>
+                </div>
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex space-x-8" id="desktop-nav">
+                    <button onclick="switchTab('career')" class="nav-btn nav-active py-2 px-1 text-sm transition-colors duration-200">Career Path</button>
+                    <button onclick="switchTab('roadmap')" class="nav-btn text-stone-500 hover:text-stone-900 py-2 px-1 text-sm transition-colors duration-200">Learning Roadmap</button>
+                    <button onclick="switchTab('techstack')" class="nav-btn text-stone-500 hover:text-stone-900 py-2 px-1 text-sm transition-colors duration-200">Tech Stack Comparison</button>
+                    <button onclick="switchTab('projects')" class="nav-btn text-stone-500 hover:text-stone-900 py-2 px-1 text-sm transition-colors duration-200">Projects & Syllabus</button>
+                </nav>
+            </div>
+            <!-- Mobile Nav Dropdown -->
+            <div id="mobile-nav" class="hidden md:hidden pb-4">
+                <div class="flex flex-col space-y-2">
+                    <button onclick="switchTab('career')" class="text-left px-3 py-2 text-stone-700 font-medium bg-stone-50 rounded-md">Career Path</button>
+                    <button onclick="switchTab('roadmap')" class="text-left px-3 py-2 text-stone-500 hover:text-stone-900 font-medium">Learning Roadmap</button>
+                    <button onclick="switchTab('techstack')" class="text-left px-3 py-2 text-stone-500 hover:text-stone-900 font-medium">Tech Stack Comparison</button>
+                    <button onclick="switchTab('projects')" class="text-left px-3 py-2 text-stone-500 hover:text-stone-900 font-medium">Projects & Syllabus</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- Intro Section -->
+        <div class="mb-8 text-center max-w-3xl mx-auto">
+            <h1 class="text-4xl font-bold text-stone-800 mb-4">Navigate Your Future in Data</h1>
+            <p class="text-lg text-stone-600">
+                Explore the complete roadmap from fresher to leadership. 
+                Interact with the visualizations below to understand role progressions, 
+                required technical skills, and the projects needed to build your portfolio.
+            </p>
+        </div>
+
+        <!-- Section 1: Career Path -->
+        <div id="view-career" class="view-section fade-in">
+            <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                <div class="p-6 border-b border-stone-100 bg-stone-50">
+                    <h2 class="text-2xl font-bold text-stone-800">Career Progression Path</h2>
+                    <p class="mt-2 text-stone-600">
+                        The data domain offers a structured evolution from entry-level reporting roles to high-level strategic leadership. 
+                        Click on any phase in the diagram below to explore the specific roles and requirements.
+                    </p>
+                </div>
+                
+                <div class="p-6 lg:p-10">
+                    <!-- Interactive Flowchart -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <!-- Phase 1 -->
+                        <div onclick="showCareerDetail('phase1')" class="cursor-pointer group relative">
+                            <div class="absolute inset-0 bg-emerald-100 rounded-lg transform transition-transform group-hover:scale-105"></div>
+                            <div class="relative bg-white border-2 border-emerald-500 rounded-lg p-4 text-center h-full flex flex-col items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                                <span class="text-2xl mb-2">🌱</span>
+                                <h3 class="font-bold text-emerald-800">Phase 1: Entry</h3>
+                                <p class="text-xs text-stone-500 mt-1">Fresher (0-2 Yrs)</p>
+                                <div class="mt-2 text-emerald-600 text-sm font-semibold">Click for Details</div>
+                            </div>
+                            <!-- Arrow (Hidden on mobile/last item) -->
+                            <div class="hidden md:block absolute top-1/2 -right-6 transform -translate-y-1/2 text-stone-300 text-xl">➜</div>
+                        </div>
+
+                        <!-- Phase 2 -->
+                        <div onclick="showCareerDetail('phase2')" class="cursor-pointer group relative">
+                            <div class="absolute inset-0 bg-sky-100 rounded-lg transform transition-transform group-hover:scale-105"></div>
+                            <div class="relative bg-white border-2 border-sky-500 rounded-lg p-4 text-center h-full flex flex-col items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                                <span class="text-2xl mb-2">🔍</span>
+                                <h3 class="font-bold text-sky-800">Phase 2: Specialist</h3>
+                                <p class="text-xs text-stone-500 mt-1">Mid-Level (2-5 Yrs)</p>
+                                <div class="mt-2 text-sky-600 text-sm font-semibold">Click for Details</div>
+                            </div>
+                            <div class="hidden md:block absolute top-1/2 -right-6 transform -translate-y-1/2 text-stone-300 text-xl">➜</div>
+                        </div>
+
+                        <!-- Phase 3 -->
+                        <div onclick="showCareerDetail('phase3')" class="cursor-pointer group relative">
+                            <div class="absolute inset-0 bg-indigo-100 rounded-lg transform transition-transform group-hover:scale-105"></div>
+                            <div class="relative bg-white border-2 border-indigo-500 rounded-lg p-4 text-center h-full flex flex-col items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                                <span class="text-2xl mb-2">⚙️</span>
+                                <h3 class="font-bold text-indigo-800">Phase 3: Advanced</h3>
+                                <p class="text-xs text-stone-500 mt-1">Senior (5-8 Yrs)</p>
+                                <div class="mt-2 text-indigo-600 text-sm font-semibold">Click for Details</div>
+                            </div>
+                            <div class="hidden md:block absolute top-1/2 -right-6 transform -translate-y-1/2 text-stone-300 text-xl">➜</div>
+                        </div>
+
+                        <!-- Phase 4 -->
+                        <div onclick="showCareerDetail('phase4')" class="cursor-pointer group relative">
+                            <div class="absolute inset-0 bg-rose-100 rounded-lg transform transition-transform group-hover:scale-105"></div>
+                            <div class="relative bg-white border-2 border-rose-500 rounded-lg p-4 text-center h-full flex flex-col items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                                <span class="text-2xl mb-2">🏛️</span>
+                                <h3 class="font-bold text-rose-800">Phase 4: Leadership</h3>
+                                <p class="text-xs text-stone-500 mt-1">Lead (8+ Yrs)</p>
+                                <div class="mt-2 text-rose-600 text-sm font-semibold">Click for Details</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details Panel -->
+                    <div id="career-detail-panel" class="bg-stone-50 rounded-xl p-6 border border-stone-200 min-h-[200px] transition-all duration-300">
+                        <div class="text-center text-stone-500 italic">Select a career phase above to view roles and responsibilities.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Learning Roadmap -->
+        <div id="view-roadmap" class="view-section hidden fade-in">
+            <div class="bg-white rounded-xl shadow-sm border border-stone-200">
+                <div class="p-6 border-b border-stone-100 bg-stone-50">
+                    <h2 class="text-2xl font-bold text-stone-800">6-Month Fast-Track Learning Plan</h2>
+                    <p class="mt-2 text-stone-600">
+                        Starting from zero? This timeline outlines the critical sequence of skills to become job-ready for entry-level roles.
+                        Click on each month to see the specific focus areas and topics.
+                    </p>
+                </div>
+                <div class="p-6 lg:p-10">
+                    <!-- Timeline Container -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 relative">
+                        <!-- Connecting Line (Desktop) -->
+                        <div class="hidden md:block absolute top-1/2 left-0 right-0 h-1 bg-stone-200 -z-10 transform -translate-y-1/2 mx-10"></div>
+                        
+                        <!-- Month Nodes generated by JS -->
+                        <div id="timeline-container" class="w-full flex flex-col md:flex-row justify-between gap-4">
+                            <!-- JS will populate -->
+                        </div>
+                    </div>
+
+                    <!-- Month Details -->
+                    <div id="roadmap-detail" class="mt-10 bg-orange-50 rounded-xl p-6 border border-orange-100">
+                        <h3 id="roadmap-title" class="text-xl font-bold text-orange-900">Select a Month</h3>
+                        <p id="roadmap-focus" class="text-orange-800 font-medium mt-1"></p>
+                        <div class="mt-4 pt-4 border-t border-orange-200">
+                            <h4 class="text-sm font-bold text-orange-700 uppercase tracking-wide">Key Topics</h4>
+                            <ul id="roadmap-topics" class="mt-2 space-y-2 text-stone-700 list-disc list-inside">
+                                <!-- Topics go here -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Tech Stack Comparison -->
+        <div id="view-techstack" class="view-section hidden fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Text Content -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+                        <h2 class="text-2xl font-bold text-stone-800">Tech Stack & Skills</h2>
+                        <p class="mt-2 text-stone-600">
+                            Different roles require different balances of technical skills. The chart compares the relative emphasis on key domains for the three primary individual contributor paths.
+                        </p>
+                        <div class="mt-6 space-y-4">
+                            <div class="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 transition" onclick="toggleDataset(0)">
+                                <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
+                                <div>
+                                    <h4 class="font-bold text-stone-800">Data Analyst</h4>
+                                    <p class="text-xs text-stone-500">Focus: SQL, Viz, Business Logic</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:bg-purple-100 transition" onclick="toggleDataset(1)">
+                                <div class="w-4 h-4 bg-purple-500 rounded-full"></div>
+                                <div>
+                                    <h4 class="font-bold text-stone-800">Data Scientist</h4>
+                                    <p class="text-xs text-stone-500">Focus: Python, Stats, ML</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-100 cursor-pointer hover:bg-red-100 transition" onclick="toggleDataset(2)">
+                                <div class="w-4 h-4 bg-red-500 rounded-full"></div>
+                                <div>
+                                    <h4 class="font-bold text-stone-800">Data Engineer</h4>
+                                    <p class="text-xs text-stone-500">Focus: Architecture, Pipelines, Cloud</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+                        <h3 class="font-bold text-lg text-stone-800 mb-3">Core Tooling</h3>
+                        <ul class="space-y-2 text-sm text-stone-600">
+                            <li><strong class="text-stone-800">Analyst:</strong> SQL, Excel, Power BI/Tableau, Python (Basic)</li>
+                            <li><strong class="text-stone-800">Scientist:</strong> Python (Scikit-learn), Jupyter, SQL, Advanced Stats</li>
+                            <li><strong class="text-stone-800">Engineer:</strong> Spark, Airflow, SQL, AWS/GCP, Docker</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-stone-200 p-6 flex flex-col justify-center">
+                    <h3 class="text-center font-bold text-stone-500 mb-4 tracking-wider uppercase text-sm">Skill Distribution Radar</h3>
+                    <div class="chart-container">
+                        <canvas id="skillsRadarChart"></canvas>
+                    </div>
+                    <p class="text-center text-xs text-stone-400 mt-4">
+                        *Values represent relative importance/depth of knowledge required for the role.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Projects & Syllabus -->
+        <div id="view-projects" class="view-section hidden fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <!-- Project Portfolio Guide -->
+                <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                    <div class="p-6 border-b border-stone-100 bg-stone-50 flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <h2 class="text-xl font-bold text-stone-800">Project Portfolio</h2>
+                            <p class="text-sm text-stone-600">Prove your skills with these tiered projects.</p>
+                        </div>
+                        <select id="project-filter" onchange="filterProjects()" class="text-sm border-stone-300 rounded-md shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-200 p-2 bg-white">
+                            <option value="all">All Levels</option>
+                            <option value="analyst">Level 1-2: Analyst</option>
+                            <option value="scientist">Level 3-4: Scientist/Product</option>
+                            <option value="engineer">Level 5-6: Engineering</option>
+                        </select>
+                    </div>
+                    <div class="p-6 max-h-[600px] overflow-y-auto custom-scroll">
+                        <div id="projects-grid" class="grid grid-cols-1 gap-4">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Syllabus Explorer -->
+                <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                    <div class="p-6 border-b border-stone-100 bg-stone-50">
+                        <h2 class="text-xl font-bold text-stone-800">Syllabus Explorer</h2>
+                        <p class="text-sm text-stone-600">What to study at each stage.</p>
+                    </div>
+                    <div class="p-6 max-h-[600px] overflow-y-auto custom-scroll">
+                        <div class="space-y-4">
+                            <!-- Level 1-2 -->
+                            <div class="border border-emerald-200 rounded-lg overflow-hidden">
+                                <button onclick="toggleAccordion('syllabus-l1')" class="w-full text-left px-4 py-3 bg-emerald-50 hover:bg-emerald-100 flex justify-between items-center transition">
+                                    <span class="font-bold text-emerald-800">🟢 Level 1-2: The Analyst Core</span>
+                                    <span class="text-emerald-600 text-xl">+</span>
+                                </button>
+                                <div id="syllabus-l1" class="hidden px-4 py-4 bg-white">
+                                    <ul class="space-y-3 text-sm text-stone-600">
+                                        <li><strong class="text-emerald-700 block">Excel</strong> Advanced formulas, Pivot tables, XLOOKUP, Data cleaning.</li>
+                                        <li><strong class="text-emerald-700 block">SQL</strong> Schema design, CTEs, Window Functions, Joins.</li>
+                                        <li><strong class="text-emerald-700 block">Python</strong> The "Data Stack": Pandas (Dataframes), NumPy, Matplotlib.</li>
+                                        <li><strong class="text-emerald-700 block">Stats</strong> Descriptive statistics, distributions, correlation.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Level 3-4 -->
+                            <div class="border border-sky-200 rounded-lg overflow-hidden">
+                                <button onclick="toggleAccordion('syllabus-l2')" class="w-full text-left px-4 py-3 bg-sky-50 hover:bg-sky-100 flex justify-between items-center transition">
+                                    <span class="font-bold text-sky-800">🔵 Level 3-4: The Scientist's Path</span>
+                                    <span class="text-sky-600 text-xl">+</span>
+                                </button>
+                                <div id="syllabus-l2" class="hidden px-4 py-4 bg-white">
+                                    <ul class="space-y-3 text-sm text-stone-600">
+                                        <li><strong class="text-sky-700 block">Advanced Stats</strong> A/B Testing, Hypothesis testing, Regression.</li>
+                                        <li><strong class="text-sky-700 block">Machine Learning</strong> Scikit-learn, Feature Engineering, Model Tuning.</li>
+                                        <li><strong class="text-sky-700 block">Product Analytics</strong> Retention, Cohorts, Customer Lifetime Value (CLV).</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Level 5-7 -->
+                            <div class="border border-rose-200 rounded-lg overflow-hidden">
+                                <button onclick="toggleAccordion('syllabus-l3')" class="w-full text-left px-4 py-3 bg-rose-50 hover:bg-rose-100 flex justify-between items-center transition">
+                                    <span class="font-bold text-rose-800">🔴 Level 5-7: Infrastructure & Strategy</span>
+                                    <span class="text-rose-600 text-xl">+</span>
+                                </button>
+                                <div id="syllabus-l3" class="hidden px-4 py-4 bg-white">
+                                    <ul class="space-y-3 text-sm text-stone-600">
+                                        <li><strong class="text-rose-700 block">Engineering</strong> Spark, Airflow, Cloud (AWS/GCP), ETL/ELT.</li>
+                                        <li><strong class="text-rose-700 block">Architecture</strong> Data Lakes, Warehousing (Snowflake), System Design.</li>
+                                        <li><strong class="text-rose-700 block">Strategy</strong> Stakeholder management, Budgeting, Governance.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stone-800 text-stone-400 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-sm">
+            <p>© 2025 Data Career Navigator. Generated for Professional Development Planning.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- DATA ---
+        
+        const careerData = {
+            phase1: {
+                title: "Phase 1: Entry (0-2 Years)",
+                color: "emerald",
+                roles: ["Data Analyst", "MIS Analyst"],
+                desc: "Focus on mastering the fundamentals: cleaning data, running basic queries, and creating reports.",
+                skills: "Excel, Basic SQL, Basic Python, Power BI/Tableau"
+            },
+            phase2: {
+                title: "Phase 2: Specialist (2-5 Years)",
+                color: "sky",
+                roles: ["Senior Data Analyst", "Product Analyst"],
+                desc: "Move into deeper analysis. You are answering 'Why' something happened, not just 'What'.",
+                skills: "Advanced SQL, A/B Testing, Python Scripting, Product Metrics"
+            },
+            phase3: {
+                title: "Phase 3: Advanced (Senior)",
+                color: "indigo",
+                roles: ["Analytics Engineer", "Data Scientist", "Data Engineer"],
+                desc: "Specialization splits here. Choose between building infrastructure (Engineering) or advanced predictive modeling (Science).",
+                skills: "Machine Learning, ETL Pipelines, Data Warehousing, Cloud Infrastructure"
+            },
+            phase4: {
+                title: "Phase 4: Leadership (8+ Years)",
+                color: "rose",
+                roles: ["Lead Data Scientist", "Data Architect", "Head of Data"],
+                desc: "Strategic oversight. You align data initiatives with business goals and manage teams.",
+                skills: "Strategy, Budgeting, Governance, System Architecture, Mentorship"
+            }
+        };
+
+        const roadmapData = [
+            { month: "Month 1", title: "Data Foundations", topics: ["Excel (Pivots, XLOOKUP)", "Basic Statistics", "Data Cleaning"] },
+            { month: "Month 2", title: "SQL Mastery", topics: ["Joins (Inner, Left, Right)", "Aggregations", "Subqueries", "Window Functions"] },
+            { month: "Month 3", title: "Python Basics", topics: ["Syntax & Variables", "Loops & Logic", "Functions", "Lists & Dictionaries"] },
+            { month: "Month 4", title: "Data Libraries", topics: ["Pandas (Dataframes)", "NumPy", "Matplotlib", "Seaborn"] },
+            { month: "Month 5", title: "Visualization", topics: ["Power BI or Tableau", "Interactive Dashboards", "Data Storytelling"] },
+            { month: "Month 6", title: "Portfolio", topics: ["End-to-end Analysis", "Kaggle Datasets", "Resume Building"] }
+        ];
+
+        const projectData = [
+            { level: "analyst", title: "Sales Performance Dashboard", desc: "Use SQL to clean data and Power BI to visualize trends.", stack: "SQL, Power BI" },
+            { level: "analyst", title: "Customer Survey Analysis", desc: "Analyze sentiment and distribution of feedback from CSV.", stack: "Python, Pandas" },
+            { level: "scientist", title: "E-commerce Funnel Analysis", desc: "Track user drop-off: Search -> Cart -> Purchase.", stack: "Python, SQL, Viz" },
+            { level: "scientist", title: "Churn Prediction Model", desc: "Predict subscription cancellations using Logistic Regression.", stack: "Scikit-learn, ML" },
+            { level: "engineer", title: "Automated ETL Pipeline", desc: "Extract from API, Transform, Load to PostgreSQL.", stack: "Python, SQL" },
+            { level: "engineer", title: "ML API Deployment", desc: "Deploy price prediction model as web service.", stack: "FastAPI, Docker" }
+        ];
+
+        // --- STATE & NAV ---
+
+        let currentTab = 'career';
+        let radarChart = null;
+
+        function switchTab(tabId) {
+            // Update Tab UI
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('nav-active', 'text-stone-900', 'font-semibold');
+                btn.classList.add('text-stone-500');
+            });
+            // Find button by onclick attribute content roughly (simple way)
+            const activeBtns = Array.from(document.querySelectorAll('.nav-btn')).filter(b => b.getAttribute('onclick').includes(tabId));
+            activeBtns.forEach(b => {
+                b.classList.add('nav-active', 'text-stone-900', 'font-semibold');
+                b.classList.remove('text-stone-500');
+            });
+
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            
+            // Show selected view
+            const selectedView = document.getElementById(`view-${tabId}`);
+            selectedView.classList.remove('hidden');
+            
+            // Re-trigger animation
+            selectedView.classList.remove('fade-in');
+            void selectedView.offsetWidth; // trigger reflow
+            selectedView.classList.add('fade-in');
+
+            currentTab = tabId;
+
+            // Initialize chart if techstack tab and not created
+            if (tabId === 'techstack' && !radarChart) {
+                initRadarChart();
+            }
+        }
+
+        // --- CAREER PATH LOGIC ---
+
+        function showCareerDetail(phaseKey) {
+            const data = careerData[phaseKey];
+            const panel = document.getElementById('career-detail-panel');
+            
+            // Color mapping for border/bg
+            const colorClasses = {
+                emerald: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+                sky: 'border-sky-200 bg-sky-50 text-sky-900',
+                indigo: 'border-indigo-200 bg-indigo-50 text-indigo-900',
+                rose: 'border-rose-200 bg-rose-50 text-rose-900'
+            };
+
+            // Reset classes
+            panel.className = `rounded-xl p-6 border transition-all duration-300 ${colorClasses[data.color]}`;
+
+            panel.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-2">${data.title}</h3>
+                        <p class="mb-4 text-stone-700 max-w-2xl">${data.desc}</p>
+                        <div>
+                            <span class="font-bold uppercase text-xs tracking-wider opacity-70">Target Roles:</span>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                ${data.roles.map(r => `<span class="bg-white bg-opacity-60 px-2 py-1 rounded-md text-sm font-semibold shadow-sm">${r}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white bg-opacity-60 p-4 rounded-lg shadow-sm md:w-1/3 w-full">
+                        <span class="font-bold uppercase text-xs tracking-wider opacity-70">Key Skills:</span>
+                        <p class="mt-1 font-medium">${data.skills}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ROADMAP LOGIC ---
+
+        function initRoadmap() {
+            const container = document.getElementById('timeline-container');
+            roadmapData.forEach((item, index) => {
+                const node = document.createElement('div');
+                node.className = "flex flex-col items-center cursor-pointer group w-full md:w-auto z-10";
+                node.onclick = () => showRoadmapDetail(index);
+                
+                node.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-white border-4 border-stone-200 group-hover:border-orange-500 transition-colors flex items-center justify-center font-bold text-stone-500 group-hover:text-orange-600 shadow-sm">
+                        ${index + 1}
+                    </div>
+                    <div class="mt-2 text-center">
+                        <div class="text-xs font-bold text-stone-400 uppercase tracking-wide">Month ${index + 1}</div>
+                        <div class="text-sm font-semibold text-stone-700 group-hover:text-orange-700">${item.title}</div>
+                    </div>
+                `;
+                container.appendChild(node);
+            });
+            // Show first month by default
+            showRoadmapDetail(0);
+        }
+
+        function showRoadmapDetail(index) {
+            const data = roadmapData[index];
+            document.getElementById('roadmap-title').textContent = `${data.month}: ${data.title}`;
+            document.getElementById('roadmap-focus').textContent = `Focus: ${data.topics[0]} & more`; // Simplified focus text
+            
+            const list = document.getElementById('roadmap-topics');
+            list.innerHTML = data.topics.map(t => `<li>${t}</li>`).join('');
+            
+            // Highlight node
+            const nodes = document.getElementById('timeline-container').children;
+            Array.from(nodes).forEach((n, i) => {
+                const circle = n.querySelector('div');
+                if (i === index) {
+                    circle.classList.remove('border-stone-200', 'text-stone-500');
+                    circle.classList.add('border-orange-600', 'bg-orange-50', 'text-orange-700');
+                } else {
+                    circle.classList.add('border-stone-200', 'text-stone-500');
+                    circle.classList.remove('border-orange-600', 'bg-orange-50', 'text-orange-700');
+                }
+            });
+        }
+
+        // --- PROJECTS LOGIC ---
+
+        function renderProjects(filter = 'all') {
+            const grid = document.getElementById('projects-grid');
+            grid.innerHTML = '';
+            
+            const filtered = filter === 'all' ? projectData : projectData.filter(p => p.level === filter);
+            
+            filtered.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "bg-stone-50 border border-stone-200 p-4 rounded-lg hover:shadow-md transition-shadow";
+                
+                // Badge color
+                let badgeClass = "bg-stone-200 text-stone-700";
+                if(p.level === 'analyst') badgeClass = "bg-emerald-100 text-emerald-800";
+                if(p.level === 'scientist') badgeClass = "bg-sky-100 text-sky-800";
+                if(p.level === 'engineer') badgeClass = "bg-rose-100 text-rose-800";
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs px-2 py-1 rounded font-bold uppercase ${badgeClass}">${p.level}</span>
+                    </div>
+                    <h4 class="font-bold text-stone-800 text-lg">${p.title}</h4>
+                    <p class="text-sm text-stone-600 mt-1 mb-3">${p.desc}</p>
+                    <div class="text-xs text-stone-400 font-mono pt-2 border-t border-stone-100">
+                        Stack: ${p.stack}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterProjects() {
+            const val = document.getElementById('project-filter').value;
+            renderProjects(val);
+        }
+
+        // --- SYLLABUS LOGIC ---
+        function toggleAccordion(id) {
+            const el = document.getElementById(id);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        // --- CHART LOGIC ---
+
+        function initRadarChart() {
+            const ctx = document.getElementById('skillsRadarChart').getContext('2d');
+            
+            // Data Interpretation from Source Text
+            // Analyst: High SQL, High Excel/Viz, Med Python, Low ML, Low Eng
+            // Scientist: High Python, High ML, High Stats, Med SQL, Med Eng
+            // Engineer: High SQL, High Eng (Cloud/Pipelines), Med Python, Low Viz, Low ML
+
+            const labels = ['SQL', 'Python/Coding', 'Statistics', 'Machine Learning', 'Data Engineering', 'Visualization/Business'];
+            
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Data Analyst',
+                            data: [9, 5, 6, 2, 3, 10], // Strong SQL/Viz
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)', // Blue
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                        },
+                        {
+                            label: 'Data Scientist',
+                            data: [7, 9, 9, 10, 5, 7], // Strong Math/ML/Python
+                            backgroundColor: 'rgba(168, 85, 247, 0.2)', // Purple
+                            borderColor: 'rgba(168, 85, 247, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(168, 85, 247, 1)',
+                            hidden: true // Start hidden for clarity
+                        },
+                        {
+                            label: 'Data Engineer',
+                            data: [9, 8, 4, 3, 10, 3], // Strong Eng/SQL
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)', // Red
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+                            hidden: true // Start hidden for clarity
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true,
+                                color: '#e5e7eb'
+                            },
+                            grid: {
+                                color: '#e5e7eb'
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 10,
+                            ticks: {
+                                display: false // Hide numbers for cleaner look
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 11,
+                                    family: "'Inter', sans-serif"
+                                },
+                                color: '#4b5563'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: "'Inter', sans-serif" },
+                                boxWidth: 12
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1f2937',
+                            bodyColor: '#4b5563',
+                            borderColor: '#e5e7eb',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleDataset(index) {
+            if (radarChart) {
+                const meta = radarChart.getDatasetMeta(index);
+                meta.hidden = meta.hidden === null ? !radarChart.data.datasets[index].hidden : null;
+                radarChart.update();
+            }
+        }
+
+        // --- INIT ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initRoadmap();
+            renderProjects();
+            
+            // Initialize mobile menu listener
+            document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+                const menu = document.getElementById('mobile-nav');
+                menu.classList.toggle('hidden');
+            });
+
+            // Initialize default career details
+            showCareerDetail('phase1');
+        });
+
+    </script>
+</body>
+</html>
